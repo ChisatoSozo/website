@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Text } from "@mantine/core";
+import { Box, Text, useMantineTheme } from "@mantine/core";
 import { handleScrollGlobal } from "./SnapScroll";
 
 export const LetterByLetter = ({ text }: { text: string }) => {
@@ -7,6 +7,7 @@ export const LetterByLetter = ({ text }: { text: string }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [blinkingUnderscore, setBlinkingUnderscore] = useState(true);
   const boxRef = useRef<HTMLDivElement>(null);
+  const theme = useMantineTheme();
 
   useEffect(() => {
     if (index < text.length) {
@@ -46,6 +47,7 @@ export const LetterByLetter = ({ text }: { text: string }) => {
         display: "flex",
         justifyContent: "start",
         alignItems: "center",
+        height: "90dvh",
       }}
     >
       <Box
@@ -59,6 +61,7 @@ export const LetterByLetter = ({ text }: { text: string }) => {
         <Text
           style={{
             fontSize: "calc(min(20vw, 30vh))",
+            color: theme.colors.blue[4],
           }}
         >
           {">"}
@@ -69,7 +72,14 @@ export const LetterByLetter = ({ text }: { text: string }) => {
           }}
         >
           {displayedText}
-          {blinkingUnderscore ? "_" : "⠀"}
+          <span
+            style={{
+              fontSize: "calc(min(20vw, 30vh))",
+              color: theme.colors.blue[4],
+            }}
+          >
+            {blinkingUnderscore ? "_" : "⠀"}
+          </span>
         </Text>
       </Box>
     </Box>

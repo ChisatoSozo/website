@@ -43,6 +43,12 @@ function App() {
           }}
         >
           Scroll to navigate
+          <br></br>
+          <br></br>
+          <br></br>
+          <br></br>
+          <br></br>
+          <br></br>
         </Text>
       </Box>
 

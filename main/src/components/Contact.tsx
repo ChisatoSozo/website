@@ -32,7 +32,7 @@ export const Contact = () => {
   return (
     <Box
       style={{
-        height: "100vh",
+        height: "80vh",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",

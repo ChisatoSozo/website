@@ -4,18 +4,22 @@ import React, {
   useState,
   useRef,
   useEffect,
+  TouchEvent,
 } from "react";
 import { Box } from "@mantine/core";
 
 export let handleScrollGlobal:
-  | ((event: React.WheelEvent<HTMLDivElement>) => void)
+  | ((
+      event: React.WheelEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>
+    ) => void)
   | null = null;
 
 export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
   const [offsetY, setOffsetY] = useState(0);
   const [animating, setAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastWheelTime = useRef(0);
+  const lastInteractionTime = useRef(0);
+  const touchStartY = useRef(0);
 
   const refs = useMemo(
     () =>
@@ -54,16 +58,13 @@ export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
     [offsetY, refs]
   );
 
-  const handleScroll = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleInteraction = useCallback(
+    (delta: number) => {
       const thisTime = new Date().getTime();
-      //debounce
-      const diff = thisTime - lastWheelTime.current;
-      lastWheelTime.current = thisTime;
-      console.log(diff);
-      //two frames
-      if (diff < 40) return;
-      if (animating) return;
+      const diff = thisTime - lastInteractionTime.current;
+      lastInteractionTime.current = thisTime;
+
+      if (diff < 40 || animating) return;
 
       const currentSection =
         refs[Math.abs(offsetY / window.innerHeight)].current;
@@ -73,7 +74,7 @@ export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
       const isAtTop = scrollTop === 0;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
 
-      if (event.deltaY > 0 && isAtBottom) {
+      if (delta > 0 && isAtBottom) {
         if (offsetY === -window.innerHeight * (children.length - 1)) return;
         setAnimating(true);
         const anim = animateAll("up");
@@ -81,7 +82,7 @@ export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
           setAnimating(false);
           setOffsetY(offsetY - window.innerHeight);
         };
-      } else if (event.deltaY < 0 && isAtTop) {
+      } else if (delta < 0 && isAtTop) {
         if (offsetY === 0) return;
         setAnimating(true);
         const anim = animateAll("down");
@@ -94,8 +95,36 @@ export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
     [animateAll, animating, children.length, offsetY, refs]
   );
 
-  //this is a hack cause I don't wanna set up a whole context for this website
-  handleScrollGlobal = handleScroll;
+  const handleWheel = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      handleInteraction(event.deltaY);
+    },
+    [handleInteraction]
+  );
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = event.touches[0].clientY;
+  };
+
+  const handleTouchMove = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      const touchEndY = event.touches[0].clientY;
+      const delta = touchStartY.current - touchEndY;
+      if (Math.abs(delta) > 50) {
+        handleInteraction(delta);
+        touchStartY.current = touchEndY;
+      }
+    },
+    [handleInteraction]
+  );
+
+  handleScrollGlobal = (event) => {
+    if ("deltaY" in event) {
+      handleWheel(event);
+    } else {
+      handleTouchMove(event);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -113,7 +142,9 @@ export const SnapScroll = ({ children }: { children: React.ReactNode[] }) => {
       h="100dvh"
       w="100vw"
       style={{ overflow: "hidden" }}
-      onWheel={handleScroll}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
     >
       {children.map((child, index) => (
         <Box
